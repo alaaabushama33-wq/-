@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>مواقيت الصلاة | مساجد قريبة</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Leaflet للخريطة -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* الحاوية الرئيسية - تصميم نظيف */
+        .app-container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06);
+            padding: 28px;
+        }
+
+        /* الهيدر البسيط */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            background: #0a4d4f;
+            color: white;
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .logo-text h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .logo-text p {
+            color: #64748b;
+            font-size: 15px;
+        }
+
+        /* مبدل الستايل العصري */
+        .style-toggle-modern {
+            background: #f1f5f9;
+            border-radius: 100px;
+            padding: 6px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .style-toggle-modern button {
+            background: transparent;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .style-toggle-modern button.active-modern {
+            background: white;
+            color: #0a4d4f;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+        }
+
+        .style-toggle-modern button i {
+            font-size: 18px;
+        }
+
+        /* الشبكة الرئيسية */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr;
+            gap: 28px;
+        }
+
+        /* البطاقة اليسرى */
+        .prayer-card {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e9eef2;
+        }
+
+        /* معلومات الموقع */
+        .location-modern {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 28px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .city-modern {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .city-modern i {
+            color: #0a4d4f;
+            font-size: 22px;
+        }
+
+        .city-modern span {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .date-modern {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .date-modern i {
+            color: #94a3b8;
+        }
+
+        /* قائمة الصلاة */
+        .prayer-table {
+            margin: 28px 0;
+        }
+
+        .prayer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .prayer-row:last-child {
+            border-bottom: none;
+        }
+
+        .prayer-name-modern {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .prayer-name-modern i {
+            width: 28px;
+            color: #0a4d4f;
+            font-size: 20px;
+        }
+
+        .prayer-time-modern {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+            font-family: 'SF Mono', monospace;
+            background: #f1f5f9;
+            padding: 8px 20px;
+            border-radius: 40px;
+        }
+
+        /* العد التنازلي */
+        .next-prayer-modern {
+            background: #f0f9fa;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 28px 0;
+            border: 1px solid #cbd5e1;
+        }
+
+        .next-prayer-label {
+            color: #475569;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .next-prayer-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .next-name {
+            background: #0a4d4f;
+            color: white;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .next-countdown {
+            font-size: 28px;
+            font-weight: 600;
+            color: #0f172a;
+            font-family: monospace;
+            letter-spacing: 3px;
+        }
+
+        /* أزرار التحكم */
+        .controls-modern {
+            display: flex;
+            gap: 12px;
+            margin: 28px 0;
+        }
+
+        .btn-modern {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 18px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-modern:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        .btn-modern.primary {
+            background: #0a4d4f;
+            border-color: #0a4d4f;
+            color: white;
+        }
+
+        .btn-modern.primary:hover {
+            background: #0e5f62;
+        }
+
+        .btn-modern i {
+            font-size: 18px;
+        }
+
+        /* مؤشر الأذان التلقائي */
+        .auto-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 12px 18px;
+            border-radius: 60px;
+            font-size: 15px;
+            color: #334155;
+            margin-top: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background: #22c55e;
+        }
+
+        /* الخريطة */
+        .map-modern {
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            height: 100%;
+            min-height: 600px;
+            background: #f8fafc;
+        }
+
+        #map-modern-id {
+            height: 100%;
+            width: 100%;
+            min-height: 600px;
+        }
+
+        /* تذييل المميزات */
+        .features-modern {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .feature-modern {
+            background: #f8fafc;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-size: 15px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .feature-modern i {
+            color: #0a4d4f;
+        }
+
+        /* وضع الموبايل */
+        body.mobile-view .main-grid {
+            grid-template-columns: 1fr;
+        }
+
+        body.mobile-view .prayer-row {
+            padding: 14px 0;
+        }
+
+        body.mobile-view .prayer-time-modern {
+            font-size: 18px;
+            padding: 6px 16px;
+        }
+
+        body.mobile-view .btn-modern {
+            padding: 14px;
+        }
+
+        body.mobile-view .next-countdown {
+            font-size: 24px;
+        }
+
+        body.mobile-view .logo-text h1 {
+            font-size: 22px;
+        }
+
+        /* تخصيص الخريطة */
+        .user-marker-modern {
+            background: transparent;
+        }
+
+        .user-marker-modern i {
+            color: #0a4d4f;
+            font-size: 32px;
+        }
+
+        .mosque-marker-modern i {
+            color: #dc2626;
+            font-size: 28px;
+        }
+
+        /* رسالة الخطأ */
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body class="computer-view">
+    <div class="app-container">
+        <!-- هيدر بسيط -->
+        <div class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fas fa-mosque"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>مواقيت الصلاة</h1>
+                    <p>أوقات دقيقة · مساجد قريبة</p>
+                </div>
+            </div>
+            <div class="style-toggle-modern">
+                <button id="styleDesktopModern" class="active-modern"><i class="fas fa-desktop"></i> كمبيوتر</button>
+                <button id="styleMobileModern"><i class="fas fa-mobile-alt"></i> موبايل</button>
+            </div>
+        </div>
+
+        <!-- المحتوى الرئيسي -->
+        <div class="main-grid">
+            <!-- الجانب الأيمن -->
+            <div class="prayer-card">
+                <!-- الموقع والتاريخ -->
+                <div class="location-modern">
+                    <div class="city-modern">
+                        <i class="fas fa-location-dot"></i>
+                        <span id="cityModern">جاري تحديد الموقع...</span>
+                    </div>
+                    <div class="date-modern">
+                        <i class="fas fa-calendar"></i>
+                        <span id="dateModern">27 شعبان 1446</span>
+                    </div>
+                </div>
+
+                <!-- أوقات الصلاة -->
+                <div class="prayer-table">
+                    <div class="prayer-row">
+                        <span class="prayer-name-modern"><i class="fas fa-sun"></i> الفجر</span>
+                        <span class="prayer-time-modern" id="fajrModern">05:12</span>
+                    </div>
+                    <div class="prayer-row">
+                        <span class="prayer-name-modern"><i class="fas fa-sun"></i> الظهر</span>
+                        <span class="prayer-time-modern" id="dhuhrModern">12:18</span>
+                    </div>
+                    <div class="prayer-row">
+                        <span class="prayer-name-modern"><i class="fas fa-sun"></i> العصر</span>
+                        <span class="prayer-time-modern" id="asrModern">15:30</span>
+                    </div>
+                    <div class="prayer-row">
+                        <span class="prayer-name-modern"><i class="fas fa-sun"></i> المغرب</span>
+                        <span class="prayer-time-modern" id="maghribModern">17:55</span>
+                    </div>
+                    <div class="prayer-row">
+                        <span class="prayer-name-modern"><i class="fas fa-moon"></i> العشاء</span>
+                        <span class="prayer-time-modern" id="ishaModern">19:20</span>
+                    </div>
+                </div>
+
+                <!-- الصلاة القادمة -->
+                <div class="next-prayer-modern">
+                    <div class="next-prayer-label">الصلاة القادمة</div>
+                    <div class="next-prayer-details">
+                        <span class="next-name" id="nextPrayerModern">الظهر</span>
+                        <span class="next-countdown" id="countdownModern">00:00:00</span>
+                    </div>
+                </div>
+
+                <!-- أزرار التحكم -->
+                <div class="controls-modern">
+                    <button class="btn-modern" id="autoToggleModern">
+                        <i class="fas fa-bell"></i> تلقائي
+                        <i class="fas fa-check-circle" id="autoStatusModern" style="color: #22c55e;"></i>
+                    </button>
+                    <button class="btn-modern" id="playAdhanModern"><i class="fas fa-play"></i></button>
+                    <button class="btn-modern" id="stopAdhanModern"><i class="fas fa-stop"></i></button>
+                </div>
+
+                <!-- زر المساجد -->
+                <button class="btn-modern primary" id="refreshMosquesModern">
+                    <i class="fas fa-mosque"></i> تحديث المساجد القريبة
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+
+                <!-- حالة الأذان التلقائي -->
+                <div class="auto-status">
+                    <span class="status-dot"></span>
+                    <span>الأذان التلقائي مفعل · سيتم التشغيل عند وقت الصلاة</span>
+                </div>
+
+                <!-- رسالة خطأ (مخفية) -->
+                <div class="error-message" id="errorMessageModern"></div>
+            </div>
+
+            <!-- الجانب الأيسر - الخريطة -->
+            <div class="map-modern">
+                <div id="map-modern-id"></div>
+            </div>
+        </div>
+
+        <!-- المميزات -->
+        <div class="features-modern">
+            <div class="feature-modern"><i class="fas fa-check-circle"></i> أوقات دقيقة</div>
+            <div class="feature-modern"><i class="fas fa-check-circle"></i> أذان تلقائي</div>
+            <div class="feature-modern"><i class="fas fa-check-circle"></i> مساجد قريبة</div>
+            <div class="feature-modern"><i class="fas fa-check-circle"></i> اتجاه القبلة</div>
+            <div class="feature-modern"><i class="fas fa-check-circle"></i> عد تنازلي</div>
+        </div>
+    </div>
+
+    <!-- عناصر الصوت -->
+    <audio id="adhanModernAudio" preload="auto">
+        <source src="https://www.islamcan.com/audio/adhan/azan1.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        (function() {
+            // ========== الإعدادات الأساسية ==========
+            const DEFAULT_LAT = 21.4225;
+            const DEFAULT_LNG = 39.8262;
+            
+            // المتغيرات
+            let currentLat = DEFAULT_LAT;
+            let currentLng = DEFAULT_LNG;
+            let currentCity = 'مكة المكرمة';
+            let map, userMarker, mosqueMarkers = [];
+            let prayerTimes = {};
+            let autoAdhanEnabled = true;
+            let countdownInterval;
+            
+            // عناصر DOM
+            const citySpan = document.getElementById('cityModern');
+            const dateSpan = document.getElementById('dateModern');
+            const fajrSpan = document.getElementById('fajrModern');
+            const dhuhrSpan = document.getElementById('dhuhrModern');
+            const asrSpan = document.getElementById('asrModern');
+            const maghribSpan = document.getElementById('maghribModern');
+            const ishaSpan = document.getElementById('ishaModern');
+            const nextPrayerSpan = document.getElementById('nextPrayerModern');
+            const countdownSpan = document.getElementById('countdownModern');
+            const refreshBtn = document.getElementById('refreshMosquesModern');
+            const playBtn = document.getElementById('playAdhanModern');
+            const stopBtn = document.getElementById('stopAdhanModern');
+            const autoToggleBtn = document.getElementById('autoToggleModern');
+            const autoStatusIcon = document.getElementById('autoStatusModern');
+            const errorDiv = document.getElementById('errorMessageModern');
+            
+            const audio = document.getElementById('adhanModernAudio');
+            
+            // أزرار التبديل
+            const desktopBtn = document.getElementById('styleDesktopModern');
+            const mobileBtn = document.getElementById('styleMobileModern');
+
+            // ========== وظائف التبديل ==========
+            desktopBtn.addEventListener('click', () => {
+                document.body.classList.remove('mobile-view');
+                document.body.classList.add('computer-view');
+                desktopBtn.classList.add('active-modern');
+                mobileBtn.classList.remove('active-modern');
+            });
+
+            mobileBtn.addEventListener('click', () => {
+                document.body.classList.remove('computer-view');
+                document.body.classList.add('mobile-view');
+                mobileBtn.classList.add('active-modern');
+                desktopBtn.classList.remove('active-modern');
+            });
+
+            // ========== تحديد الموقع ==========
+            function locateUser() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            currentLat = position.coords.latitude;
+                            currentLng = position.coords.longitude;
+                            updateCityName(currentLat, currentLng);
+                            initMap(currentLat, currentLng);
+                            fetchPrayerTimes(currentLat, currentLng);
+                            searchNearbyMosques(currentLat, currentLng);
+                        },
+                        (error) => {
+                            console.warn('خطأ:', error);
+                            currentLat = DEFAULT_LAT;
+                            currentLng = DEFAULT_LNG;
+                            citySpan.innerText = 'مكة المكرمة';
+                            initMap(currentLat, currentLng);
+                            fetchPrayerTimes(currentLat, currentLng);
+                            searchNearbyMosques(currentLat, currentLng);
+                            
+                            errorDiv.style.display = 'block';
+                            errorDiv.innerText = 'تعذر تحديد موقعك، تم استخدام مكة المكرمة';
+                            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                } else {
+                    initMap(DEFAULT_LAT, DEFAULT_LNG);
+                    fetchPrayerTimes(DEFAULT_LAT, DEFAULT_LNG);
+                    searchNearbyMosques(DEFAULT_LAT, DEFAULT_LNG);
+                }
+            }
+
+            async function updateCityName(lat, lng) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&accept-language=ar`);
+                    const data = await res.json();
+                    const city = data.address?.city || data.address?.town || data.address?.village || 'موقعك';
+                    currentCity = city;
+                    citySpan.innerText = city;
+                } catch {
+                    citySpan.innerText = 'موقعك الحالي';
+                }
+            }
+
+            // ========== أوقات الصلاة ==========
+            async function fetchPrayerTimes(lat, lng) {
+                try {
+                    const date = new Date();
+                    const res = await fetch(`https://api.aladhan.com/v1/timings/${Math.floor(date.getTime()/1000)}?latitude=${lat}&longitude=${lng}&method=4`);
+                    const json = await res.json();
+                    
+                    if (json.code === 200) {
+                        prayerTimes = {
+                            fajr: json.data.timings.Fajr.substring(0,5),
+                            dhuhr: json.data.timings.Dhuhr.substring(0,5),
+                            asr: json.data.timings.Asr.substring(0,5),
+                            maghrib: json.data.timings.Maghrib.substring(0,5),
+                            isha: json.data.timings.Isha.substring(0,5)
+                        };
+                        
+                        fajrSpan.innerText = prayerTimes.fajr;
+                        dhuhrSpan.innerText = prayerTimes.dhuhr;
+                        asrSpan.innerText = prayerTimes.asr;
+                        maghribSpan.innerText = prayerTimes.maghrib;
+                        ishaSpan.innerText = prayerTimes.isha;
+                        
+                        const hijri = json.data.date.hijri;
+                        dateSpan.innerHTML = `${hijri.day} ${hijri.month.ar} ${hijri.year}`;
+                        
+                        startPrayerCheck();
+                    }
+                } catch (error) {
+                    console.error('خطأ في جلب الأوقات');
+                }
+            }
+
+            // ========== نظام الأذان التلقائي ==========
+            function startPrayerCheck() {
+                checkPrayerTime();
+                setInterval(checkPrayerTime, 60000);
+            }
+
+            function checkPrayerTime() {
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+                
+                const prayers = [
+                    { name: 'الفجر', time: prayerTimes.fajr },
+                    { name: 'الظهر', time: prayerTimes.dhuhr },
+                    { name: 'العصر', time: prayerTimes.asr },
+                    { name: 'المغرب', time: prayerTimes.maghrib },
+                    { name: 'العشاء', time: prayerTimes.isha }
+                ];
+                
+                // تحديد الصلاة القادمة
+                let nextPrayer = null;
+                let minDiff = Infinity;
+                
+                for (let prayer of prayers) {
+                    if (!prayer.time) continue;
+                    
+                    const [hours, minutes] = prayer.time.split(':').map(Number);
+                    const prayerDate = new Date(now);
+                    prayerDate.setHours(hours, minutes, 0);
+                    
+                    let diff = prayerDate - now;
+                    if (diff < 0) {
+                        prayerDate.setDate(prayerDate.getDate() + 1);
+                        diff = prayerDate - now;
+                    }
+                    
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        nextPrayer = prayer;
+                    }
+                }
+                
+                if (nextPrayer) {
+                    nextPrayerSpan.innerText = nextPrayer.name;
+                    updateCountdown(nextPrayer);
+                    
+                    // تشغيل الأذان إذا كان وقت الصلاة الآن
+                    const currentPrayer = prayers.find(p => p.time === currentTime);
+                    if (currentPrayer && autoAdhanEnabled) {
+                        playAdhan();
+                    }
+                }
+            }
+
+            function updateCountdown(nextPrayer) {
+                if (countdownInterval) clearInterval(countdownInterval);
+                
+                countdownInterval = setInterval(() => {
+                    const now = new Date();
+                    const [hours, minutes] = nextPrayer.time.split(':').map(Number);
+                    
+                    const prayerDate = new Date(now);
+                    prayerDate.setHours(hours, minutes, 0);
+                    
+                    let diff = prayerDate - now;
+                    if (diff < 0) {
+                        prayerDate.setDate(prayerDate.getDate() + 1);
+                        diff = prayerDate - now;
+                    }
+                    
+                    const hoursLeft = Math.floor(diff / 3600000);
+                    const minutesLeft = Math.floor((diff % 3600000) / 60000);
+                    const secondsLeft = Math.floor((diff % 60000) / 1000);
+                    
+                    countdownSpan.innerText = `${hoursLeft.toString().padStart(2,'0')}:${minutesLeft.toString().padStart(2,'0')}:${secondsLeft.toString().padStart(2,'0')}`;
+                }, 1000);
+            }
+
+            function playAdhan() {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log('لم يتم تشغيل الأذان'));
+            }
+
+            // ========== الخريطة ==========
+            function initMap(lat, lng) {
+                if (map) map.remove();
+                
+                map = L.map('map-modern-id').setView([lat, lng], 14);
+                
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '©OpenStreetMap'
+                }).addTo(map);
+
+                userMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({ 
+                        className: 'user-marker-modern',
+                        html: '<i class="fas fa-circle-user"></i>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    })
+                }).addTo(map).bindPopup('موقعك');
+            }
+
+            function searchNearbyMosques(lat, lng) {
+                if (mosqueMarkers.length) {
+                    mosqueMarkers.forEach(m => map.removeLayer(m));
+                    mosqueMarkers = [];
+                }
+
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 72) * Math.PI / 180;
+                    const dist = 0.002 + (i * 0.001);
+                    
+                    const latOffset = dist * Math.cos(angle) / 111.0;
+                    const lngOffset = dist * Math.sin(angle) / (111.0 * Math.cos(lat * Math.PI/180));
+                    
+                    const mosqueLat = lat + latOffset;
+                    const mosqueLng = lng + lngOffset;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow((mosqueLat - lat) * 111000, 2) + 
+                        Math.pow((mosqueLng - lng) * 111000 * Math.cos(lat * Math.PI/180), 2)
+                    );
+                    
+                    const marker = L.marker([mosqueLat, mosqueLng], {
+                        icon: L.divIcon({
+                            className: 'mosque-marker-modern',
+                            html: '<i class="fas fa-mosque"></i>',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 28]
+                        })
+                    }).addTo(map).bindPopup(`مسجد • ${Math.round(distance)} متر`);
+                    
+                    mosqueMarkers.push(marker);
+                }
+            }
+
+            // ========== أحداث الأزرار ==========
+            refreshBtn.addEventListener('click', () => {
+                searchNearbyMosques(currentLat, currentLng);
+            });
+
+            playBtn.addEventListener('click', playAdhan);
+
+            stopBtn.addEventListener('click', () => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+
+            autoToggleBtn.addEventListener('click', () => {
+                autoAdhanEnabled = !autoAdhanEnabled;
+                if (autoAdhanEnabled) {
+                    autoStatusIcon.style.color = '#22c55e';
+                    autoStatusIcon.className = 'fas fa-check-circle';
+                } else {
+                    autoStatusIcon.style.color = '#94a3b8';
+                    autoStatusIcon.className = 'fas fa-times-circle';
+                }
+            });
+
+            // ========== التهيئة ==========
+            window.addEventListener('load', locateUser);
+        })();
+    </script>
+</body>
+</html>
