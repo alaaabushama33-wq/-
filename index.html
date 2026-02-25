@@ -10,8 +10,9 @@
         .container { max-width: 800px; margin: auto; padding: 40px 20px; }
         .card { background: #222; padding: 25px; margin: 20px 0; border-radius: 12px; border: 1px solid #333; text-align: right; }
         input, textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 10px; box-sizing: border-box; }
-        button { padding: 12px 30px; border-radius: 25px; border: none; background: var(--primary-color); color: #000; font-weight: bold; cursor: pointer; width: 100%; }
+        button { padding: 12px 30px; border-radius: 25px; border: none; background: var(--primary-color); color: #000; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
         .locked-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; justify-content: center; align-items: center; font-size: 50px; font-weight: bold; z-index: 9999; flex-direction: column; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -19,9 +20,12 @@
 <div id="mainContent" class="container">
     <h1>Abu Shama</h1>
     <div class="card">
+        <button onclick="googleLogin()">تسجيل دخول بجوجل 🔐</button>
+        <button onclick="googleLogout()" id="logoutBtn" class="hidden">تسجيل خروج</button>
+
         <h2>📩 تواصل مع المبرمج (3 محاولات فقط)</h2>
         <p>المرسل: <span id="attemptCount" style="color: var(--primary-color);">0</span>/3</p>
-        <input type="text" id="userName" placeholder="اسمك">
+        <input type="text" id="userName" placeholder="اسمك" readonly>
         <textarea id="userMessage" rows="4" placeholder="رسالتك..."></textarea>
         <button onclick="sendToDiscord()">إرسال الرسالة 🚀</button>
     </div>
@@ -32,73 +36,115 @@
     <p style="font-size: 20px; color: white; margin-top: 20px;">تم قفل الموقع في وجهك لتجاوز الحد المسموح.</p>
 </div>
 
-<script>
-    // نظام السيناريوهات عند التحديث
-    const scenarios = [
-        "مفكر التحديث رح يشيل القفل؟ انصرف برا!",
-        "جاي تجرب حظك مرة ثانية؟ الموقع مش للعب!",
-        "لسه واقف هون؟ روح اتعلم برمجة أفيدلك!",
-        "نظام الحماية رصدك.. لا تحاول!"
-    ];
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    // استرجاع عدد المحاولات من المتصفح (عشان حتى لو عمل ريفريش يضل محظور)
-    let attempts = localStorage.getItem('shama_attempts') || 0;
-    
-    // فحص إذا كان الشخص محظور مسبقاً
-    if (attempts >= 3) {
-        applyPunishment();
+const firebaseConfig = {
+    apiKey: "AIzaSyAVQnJ5yecFMLRkrKqZKsLIxZKp49zK5jY",
+    authDomain: "studio-2251445927-ce3ff.firebaseapp.com",
+    databaseURL: "https://studio-2251445927-ce3ff-default-rtdb.firebaseio.com",
+    projectId: "studio-2251445927-ce3ff",
+    storageBucket: "studio-2251445927-ce3ff.firebasestorage.app",
+    messagingSenderId: "26149017300",
+    appId: "1:26149017300:web:4f30ddd91817f6393ecd41"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+
+window.googleLogin = function() {
+    signInWithPopup(auth, provider)
+        .catch(() => alert("فشل تسجيل الدخول"));
+}
+
+window.googleLogout = function() {
+    signOut(auth);
+}
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+        document.getElementById("userName").value = user.displayName;
+        document.getElementById("logoutBtn").classList.remove("hidden");
+    } else {
+        currentUser = null;
+        document.getElementById("userName").value = "";
+        document.getElementById("logoutBtn").classList.add("hidden");
+    }
+});
+
+// نظام العقوبات
+const scenarios = [
+    "مفكر التحديث رح يشيل القفل؟ انصرف برا!",
+    "جاي تجرب حظك مرة ثانية؟ الموقع مش للعب!",
+    "لسه واقف هون؟ روح اتعلم برمجة أفيدلك!",
+    "نظام الحماية رصدك.. لا تحاول!"
+];
+
+let attempts = localStorage.getItem('shama_attempts') || 0;
+
+if (attempts >= 3) applyPunishment();
+
+function applyPunishment() {
+    document.getElementById('mainContent').style.display = 'none';
+    const lockScreen = document.getElementById('lockScreen');
+    lockScreen.style.display = 'flex';
+    document.getElementById('punishmentMsg').innerText = scenarios[Math.floor(Math.random() * scenarios.length)];
+}
+
+window.sendToDiscord = async function() {
+
+    if (!currentUser) {
+        alert("يجب تسجيل الدخول أولاً!");
+        return;
     }
 
-    function applyPunishment() {
-        document.getElementById('mainContent').style.display = 'none';
-        const lockScreen = document.getElementById('lockScreen');
-        lockScreen.style.display = 'flex';
-        // اختيار رسالة سيناريو عشوائية
-        document.getElementById('punishmentMsg').innerText = scenarios[Math.floor(Math.random() * scenarios.length)];
+    if (attempts >= 3) return;
+
+    const webhookURL = "YOUR_WEBHOOK_HERE";
+
+    const name = currentUser.displayName;
+    const message = document.getElementById('userMessage').value.trim();
+
+    if (!message) {
+        alert("اكتب رسالة أولاً!");
+        return;
     }
 
-    async function sendToDiscord() {
-        if (attempts >= 3) return;
+    const payload = {
+        username: "مراسل الموقع",
+        content: `🔔 رسالة جديدة\n👤 ${name}\n💬 ${message}`
+    };
 
-        const webhookURL = "https://discord.com/api/webhooks/1476300790200008826/4QwKL_jmK5jIQnLFyqsWg0XHxnABZgCIgmfDzXHa6E0-dc_AhuiNSXCcWOrbbO3g6XuN"; 
-        const name = document.getElementById('userName').value.trim();
-        const message = document.getElementById('userMessage').value.trim();
+    try {
+        const response = await fetch(webhookURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-        // حل مشكلة البيانات الفارغة
-        if (!name || !message) {
-            alert("بدك ترسل هواء؟ عبّي البيانات أول!");
-            return;
-        }
+        if (response.ok) {
+            attempts++;
+            localStorage.setItem('shama_attempts', attempts);
+            document.getElementById('attemptCount').innerText = attempts;
 
-        const payload = {
-            username: "مراسل الموقع",
-            content: `🔔 **رسالة من ابن بلدك!**\n👤 **المرسل:** ${name}\n💬 **الرسالة:** ${message}`
-        };
-
-        try {
-            const response = await fetch(webhookURL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                attempts++;
-                localStorage.setItem('shama_attempts', attempts);
-                document.getElementById('attemptCount').innerText = attempts;
-                
-                if (attempts >= 3) {
-                    alert("هذي كانت آخر فرصة لك.. اودعناكم!");
-                    applyPunishment();
-                } else {
-                    alert("وصلت الرسالة.. باقي لك " + (3 - attempts) + " محاولات.");
-                    document.getElementById('userMessage').value = "";
-                }
+            if (attempts >= 3) {
+                alert("انتهت المحاولات.");
+                applyPunishment();
+            } else {
+                alert("تم الإرسال بنجاح.");
+                document.getElementById('userMessage').value = "";
             }
-        } catch (error) {
-            alert("فشل الإرسال.");
         }
+    } catch {
+        alert("فشل الإرسال");
     }
+}
 </script>
+
 </body>
 </html>
